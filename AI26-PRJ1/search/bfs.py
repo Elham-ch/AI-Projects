@@ -1,34 +1,34 @@
-from collections import deque
 from typing import List
+from collections import deque
+from env.domain import GameState
 
 
-def bfs(initial_state) -> List[str]:
-    frontier = deque([(initial_state, [])])
-    
-    visited = set()
-    
+def bfs(initial_state: GameState) -> List[str]:
+    frontier = deque([initial_state])
+    came_from = {initial_state: (None, None)}
+    goal_state = None
+
     while frontier:
-        current_state, path = frontier.popleft()
-        
+        current_state = frontier.popleft()
 
         if current_state.is_goal_state():
-            return path
+            goal_state = current_state
+            break
 
-        state_hash = hash(current_state)
-        if state_hash in visited:
-            continue
+        for action, _, next_state in current_state.get_successors():
+            if next_state not in came_from and not next_state.is_collision_state():
+                frontier.append(next_state)
+                came_from[next_state] = (current_state, action)
 
-        visited.add(state_hash)
+    if goal_state is None:
+        return []
 
-        for action, step_cost, next_state in current_state.get_successors():
-            next_hash = hash(next_state)
-
-            if next_hash in visited or next_state.is_collision_state():
-                continue
-
-            new_path = path + [action]
-
-
-            frontier.append((next_state, new_path))
-    
-    return []
+    path = []
+    curr = goal_state
+    while curr is not None:
+        prev, action = came_from[curr]
+        if action is not None:
+            path.append(action)
+        curr = prev
+    path.reverse()
+    return path
