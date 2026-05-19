@@ -1,45 +1,41 @@
-import heapq
+import itertools
+from queue import PriorityQueue
 from typing import List
+from env.domain import GameState
 
 
-def ucs(initial_state) -> List[str]:
-    
-    frontier = []
-    counter = 0
-    
-    heapq.heappush(frontier, (0, counter, initial_state, []))
-    counter += 1
-    
-    visited = set()
-    
-    while frontier:
-        g_cost, _, current_state, path = heapq.heappop(frontier)
+def ucs(initial_state: GameState) -> List[str]:
+    frontier = PriorityQueue()
+    counter = itertools.count()
+    frontier.put((0, next(counter), initial_state))
+    came_from = {initial_state: (None, None)}
+    cost_so_far = {initial_state: 0}
+    goal_state = None
 
-        if current_state.is_collision_state():
-            continue
-        
+    while not frontier.empty():
+        current_state = frontier.get()[2]
+
         if current_state.is_goal_state():
-            return path
-        
-        state_hash = hash(current_state)
-        if state_hash in visited:
-            continue
-        
-        visited.add(state_hash)
-        
+            goal_state = current_state
+            break
+
         for action, step_cost, next_state in current_state.get_successors():
-            next_hash = hash(next_state)
-            
-            if next_hash in visited or next_state.is_collision_state():
-                continue
-            
-            new_cost = g_cost + step_cost
-            new_path = path + [action]
-            
-            heapq.heappush(
-                frontier,
-                (new_cost, counter, next_state, new_path)
-            )
-            counter += 1
-    
-    return []
+            new_cost = cost_so_far[current_state] + step_cost
+            if (next_state not in came_from or new_cost < cost_so_far[next_state]) and not next_state.is_collision_state():
+                cost_so_far[next_state] = new_cost
+                priority = new_cost
+                frontier.put((priority, next(counter), next_state))
+                came_from[next_state] = (current_state, action)
+
+    if goal_state is None:
+        return []
+
+    path = []
+    curr = goal_state
+    while curr is not None:
+        prev, action = came_from[curr]
+        if action is not None:
+            path.append(action)
+        curr = prev
+    path.reverse()
+    return path
