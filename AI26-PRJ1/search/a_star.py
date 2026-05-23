@@ -64,7 +64,7 @@ def a_star(initial_state: GameState) -> List[str]:
             return direct_cost
 
         weapon_cost = (
-            50 * manhattan(agent_pos, weapon_pos)
+            5 * manhattan(agent_pos, weapon_pos)
             + targets_lower_bound(weapon_pos, targets)
         )
 
