@@ -5,32 +5,21 @@ from env.domain import GameState
 
 
 def a_star(initial_state: GameState) -> List[str]:
-    def heuristic(state: GameState):
-        targets = list(state.get_targets_positions())
-        if not targets:
+    def manhattan(pos1, pos2):
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
+    def mst_cost(points):
+        if len(points) <= 1:
             return 0
 
-        agent_pos = state.get_agent_position()
-
-        def manhattan(pos1, pos2):
-            return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
-
-        nearest = min(
-            manhattan(agent_pos, target)
-            for target in targets
-        )
-
-        if len(targets) == 1:
-            return 5 * nearest
-
-        remaining = set(targets)
+        remaining = set(points)
         current = remaining.pop()
         visited = {current}
-        mst_cost = 0
+        total_cost = 0
 
         while remaining:
             best_distance = None
-            best_target = None
+            best_point = None
 
             for source in visited:
                 for target in remaining:
@@ -40,13 +29,46 @@ def a_star(initial_state: GameState) -> List[str]:
                         or distance < best_distance
                     ):
                         best_distance = distance
-                        best_target = target
+                        best_point = target
 
-            mst_cost += best_distance
-            visited.add(best_target)
-            remaining.remove(best_target)
+            total_cost += best_distance
+            visited.add(best_point)
+            remaining.remove(best_point)
 
-        return 50 * (nearest + mst_cost)
+        return total_cost
+
+    def targets_lower_bound(start_pos, targets):
+        if not targets:
+            return 0
+
+        nearest = min(
+            manhattan(start_pos, target)
+            for target in targets
+        )
+
+        return 5 * (nearest + mst_cost(targets))
+
+    def heuristic(state: GameState):
+        targets = list(state.get_targets_positions())
+        if not targets:
+            return 0
+
+        agent_pos = state.get_agent_position()
+        direct_cost = targets_lower_bound(agent_pos, targets)
+
+        if state.has_weapon() or not state.is_enemy_alive():
+            return direct_cost
+
+        weapon_pos = state.get_weapon_position()
+        if weapon_pos is None:
+            return direct_cost
+
+        weapon_cost = (
+            50 * manhattan(agent_pos, weapon_pos)
+            + targets_lower_bound(weapon_pos, targets)
+        )
+
+        return min(direct_cost, weapon_cost)
 
     frontier = PriorityQueue()
     counter = itertools.count()
