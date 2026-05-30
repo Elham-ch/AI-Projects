@@ -3,6 +3,8 @@ import pygame
 
 from env.renderer import Renderer
 
+ANIMATION_DELAY_MS = 100
+
 
 def draw_results(algorithm_values: list, algorithm_names: list):
     plt.figure(figsize=(10, 5))
@@ -48,7 +50,7 @@ def render_history(algorithm_histories: list,
             algorithm_histories[i],
             algorithm_evaluations[i],
             algorithm_names[i],
-            delay=1000,
+            delay=ANIMATION_DELAY_MS,
         )
 
     pygame.quit()

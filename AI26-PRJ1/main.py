@@ -19,4 +19,4 @@ from search.ucs import ucs
 
 
 if __name__ == "__main__":
-    play("easy-no-weapon", bfs, delay=200)
+    play("medium-no-weapon", a_star, delay=200)
