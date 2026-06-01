@@ -146,13 +146,3 @@ class Renderer:
             )
 
             pygame.time.delay(delay)
-
-        waiting = True
-        while waiting:
-
-            for event in pygame.event.get():
-
-                if event.type == pygame.QUIT:
-                    waiting = False
-
-            pygame.time.delay(50)
