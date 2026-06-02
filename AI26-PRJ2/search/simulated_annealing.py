@@ -9,10 +9,12 @@ class SimulatedAnnealing(LocalSearchBase):
         return initial_temperature * math.pow(cooling_rate, t)
 
     def run(self, initial_state, **kwargs):
-        max_iterations = kwargs.get("max_iterations", 1000)
         initial_temperature = kwargs.get("initial_temperature", 100.0)
         cooling_rate = kwargs.get("cooling_rate", 0.995)
         min_temperature = kwargs.get("min_temperature", 0.001)
+
+        if not 0 < cooling_rate < 1:
+            raise ValueError("cooling_rate must be between 0 and 1")
 
         current_state = initial_state
         current_cost = self.evaluate(current_state)
@@ -22,7 +24,9 @@ class SimulatedAnnealing(LocalSearchBase):
         evaluations = [current_cost]
         states_history = [current_state]
 
-        for t in range(max_iterations):
+        t = 0
+
+        while True:
             temperature = self.schedule(initial_temperature, cooling_rate, t)
 
             if temperature <= min_temperature:
@@ -47,5 +51,7 @@ class SimulatedAnnealing(LocalSearchBase):
 
             evaluations.append(current_cost)
             states_history.append(current_state)
+
+            t += 1
 
         return best_state, best_cost, evaluations, states_history
