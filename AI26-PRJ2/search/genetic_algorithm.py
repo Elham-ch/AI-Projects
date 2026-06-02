@@ -16,8 +16,8 @@ class GeneticAlgorithm(LocalSearchBase):
         current_state, current_cost = self.best_individual(population)
         best_state, best_cost = current_state, current_cost
 
-        evaluations = [current_cost]
-        states_history = [current_state]
+        evaluations = [best_cost]
+        states_history = [best_state]
 
         for _ in range(generations):
             weights = self.weighted_by(population)

@@ -35,8 +35,8 @@ class BeamSearch(LocalSearchBase):
                 best_state = current_state
                 best_cost = current_cost
 
-            evaluations.append(current_cost)
-            states_history.append(current_state)
+            evaluations.append(best_cost)
+            states_history.append(best_state)
 
             if best_cost == 0:
                 break
