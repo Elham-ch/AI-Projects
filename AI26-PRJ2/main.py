@@ -11,6 +11,7 @@ from env.grid_world import GridWorld
 from search.beam_search import BeamSearch
 from search.genetic_algorithm import GeneticAlgorithm
 from search.hill_climbing import HillClimbing
+from search.local_search_base import LocalSearchBase
 from search.simulated_annealing import SimulatedAnnealing
 from utils import represent
 
@@ -70,9 +71,6 @@ if __name__ == "__main__":
         # BeamSearch
     ]
 
-    # TODO: Initialize and assign the starting state for the experiments.
-    # Note: For a fair comparison, all algorithms must start from the exact same initial configuration.
-    # Hint: You can use the initialize_state() method implemented in your search classes.
     initial_state = LocalSearchBase(world).initialize_state()
 
     # Run the evaluation pipeline
