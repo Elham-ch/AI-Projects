@@ -5,8 +5,8 @@ from search.local_search_base import LocalSearchBase
 
 class GeneticAlgorithm(LocalSearchBase):
     def run(self, initial_state, **kwargs):
-        generations = kwargs.get("generations", kwargs.get("max_iterations", 100))
-        population_size = max(2, kwargs.get("population_size", 20))
+        generations = kwargs.get("generations", kwargs.get("max_iterations", 500))
+        population_size = max(2, kwargs.get("population_size", 30))
         mutation_rate = kwargs.get("mutation_rate", 0.1)
         fit_enough = kwargs.get("fit_enough", 0)
 
@@ -44,8 +44,8 @@ class GeneticAlgorithm(LocalSearchBase):
                 best_state = current_state
                 best_cost = current_cost
 
-            evaluations.append(current_cost)
-            states_history.append(current_state)
+            evaluations.append(best_cost)
+            states_history.append(best_state)
 
             if best_cost <= fit_enough:
                 break

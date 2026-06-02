@@ -65,10 +65,10 @@ if __name__ == "__main__":
 
     # TODO: Add your bonus algorithm classes to this list (e.g., GeneticAlgorithm, BeamSearch, TabuSearch)
     algorithm_classes = [
-        HillClimbing,
-        # SimulatedAnnealing,
-        # GeneticAlgorithm,
-        # BeamSearch
+         HillClimbing,
+        SimulatedAnnealing,
+        GeneticAlgorithm,
+        BeamSearch
     ]
 
     initial_state = LocalSearchBase(world).initialize_state()
