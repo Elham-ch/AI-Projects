@@ -1,0 +1,802 @@
+\documentclass[10.5pt]{exam}
+\usepackage{hyperref}
+\usepackage[a4paper, total={6in, 10in}]{geometry}
+\usepackage{caption}
+\usepackage{algpseudocodex}
+\usepackage{algorithm}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xepersian}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{subfiles}
+\usepackage{xcolor}
+\usepackage{mathtools}
+\usepackage{multirow}
+\usepackage{mathrsfs}
+\usepackage{amssymb}
+\settextfont{XB Niloofar.ttf}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{teal},
+    showstringspaces=false,
+    columns=fullflexible
+}
+
+\begin{document}
+\pagestyle{head}
+\firstpageheader{}{}{}
+\runningheader{صفحه \thepage\ از \numpages}{}{}
+\runningheadrule
+
+\begin{tabular}{p{.75\textwidth} l}
+    \multirow{2}{*}{\includegraphics[scale=0.2] {UILOGO.png}} &                           \\ \\
+                                                              & \textbf{علوم کامپیوتر}    \\
+                                                              & \textbf{نیم‌سال دوم ۰۴-۰۵} \\
+                                                              & \textbf{هوش مصنوعی}       \\ \\
+    \textbf{دانشکده ریاضی و آمار}                             &                           \\
+\end{tabular}\\
+\noindent\rule{\textwidth}{0.5pt}
+
+\vspace{0.1cm}
+
+\textbf{زهرا چراغی، محمد ملائی، فاطمه سعیدی}
+
+\noindent\rule{\textwidth}{0.5pt}
+
+\section*{گزارش پروژه شماره ۲: الگوریتم‌های جستجوی محلی برای جایگذاری حسگر}
+
+\textbf{لینک گیت‌هاب پروژه:} \lr{https://github.com/Elham-ch/AI-Projects}
+
+\section{معرفی مسئله}
+در این پروژه، مسئله به صورت یک دنیای شبکه‌ای یا
+\lr{Grid World}
+مدل شده است. در نقشه، خانه‌های هدف با
+\lr{T}
+، مانع‌ها با
+\lr{X}
+و خانه‌های آزاد با
+\lr{.}
+مشخص می‌شوند. هدف این است که تعدادی حسگر در خانه‌های مجاز قرار دهیم، به طوری که تا حد ممکن همه هدف‌ها پوشش داده شوند. هر حسگر یک برد مشخص دارد و اگر فاصله منهتنی آن تا یک هدف کمتر یا مساوی برد حسگر باشد، آن هدف پوشش داده می‌شود.
+
+در فایل نقشه، دو عدد آخر به ترتیب برد حسگر و حداکثر تعداد حسگرهای مجاز هستند. برای نمونه در
+\lr{map1}
+برد حسگر برابر
+\lr{2}
+و حداکثر تعداد حسگرها برابر
+\lr{20}
+است. بنابراین الگوریتم اجازه دارد حداکثر ۲۰ حسگر را در خانه‌هایی قرار دهد که مانع نیستند.
+
+این مسئله از نوع بهینه‌سازی است، نه پیدا کردن یک مسیر از ابتدا تا هدف. یک جواب یا
+\lr{state}
+در این پروژه لیستی از مختصات حسگرهاست، مثلا:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+[(10, 3), (7, 10), (1, 1)]
+\end{lstlisting}
+\end{latin}
+
+یعنی سه حسگر در سه مختصات مختلف قرار گرفته‌اند. چون ترتیب حسگرها اهمیتی ندارد، دو لیست زیر از نظر جواب مسئله یکسان هستند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+[(1, 1), (7, 10)]
+[(7, 10), (1, 1)]
+\end{lstlisting}
+\end{latin}
+
+به همین دلیل در بخش‌هایی از کد، قبل از مقایسه حالت‌ها، لیست مختصات مرتب می‌شود.
+
+\section{ساختار کلی پروژه}
+کد پروژه به دو پوشه اصلی تقسیم شده است:
+
+\begin{itemize}
+    \item پوشه \lr{env}: تعریف محیط، خواندن نقشه، تشخیص خانه معتبر و نمایش نتیجه.
+    \item پوشه \lr{search}: پیاده‌سازی الگوریتم‌های جستجوی محلی.
+\end{itemize}
+
+فایل‌های مهم پروژه عبارت‌اند از:
+
+\begin{itemize}
+    \item \lr{env/grid\_world.py}: خواندن نقشه و ساختن شیء محیط.
+    \item \lr{search/local\_search\_base.py}: توابع مشترک مثل محاسبه هزینه، پوشش هدف‌ها و تولید همسایه.
+    \item \lr{search/hill\_climbing.py}
+    \item \lr{search/simulated\_annealing.py}
+    \item \lr{search/genetic\_algorithm.py}
+    \item \lr{search/beam\_search.py}
+    \item \lr{utils.py}: چاپ نتیجه، رسم نمودار هزینه و نمایش حرکت تغییرات با \lr{pygame}.
+\end{itemize}
+
+در فایل
+\lr{main.py}
+ابتدا نقشه خوانده می‌شود، سپس یک حالت اولیه ساخته می‌شود و بعد چهار الگوریتم اصلی روی همان حالت اولیه اجرا می‌شوند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+world = GridWorld("map1")
+
+algorithm_classes = [
+    HillClimbing,
+    SimulatedAnnealing,
+    GeneticAlgorithm,
+    BeamSearch
+]
+
+initial_state = LocalSearchBase(world).initialize_state()
+\end{lstlisting}
+\end{latin}
+
+تابع
+\lr{run}
+در هر الگوریتم چهار خروجی برمی‌گرداند:
+\lr{best\_state}
+،
+\lr{best\_cost}
+،
+\lr{evaluations}
+و
+\lr{states\_history}.
+دو خروجی اول جواب نهایی هستند و دو خروجی بعدی برای رسم نمودار و نمایش روند تغییر جواب استفاده می‌شوند.
+
+\section{خواندن نقشه و تعریف محیط}
+کلاس
+\lr{GridWorld}
+در فایل
+\lr{env/grid\_world.py}
+مسئول خواندن نقشه است. در تابع
+\lr{load\_map}
+همه خط‌های غیرخالی فایل خوانده می‌شوند. دو خط آخر به عدد تبدیل می‌شوند و به عنوان
+\lr{sensor\_range}
+و
+\lr{max\_sensors}
+در نظر گرفته می‌شوند. خط‌های قبل از آن‌ها خود نقشه هستند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+sensor_range = int(lines[-2])
+max_sensors = int(lines[-1])
+grid_lines = lines[:-2]
+\end{lstlisting}
+\end{latin}
+
+بعد از آن، نقشه به یک آرایه
+\lr{numpy}
+تبدیل می‌شود تا دسترسی به خانه‌ها با اندیس سطر و ستون ساده‌تر باشد. تابع
+\lr{is\_valid\_position}
+نیز بررسی می‌کند آیا یک مختصات برای قرار دادن حسگر معتبر است یا نه. اگر مختصات بیرون نقشه باشد یا خانه آن
+\lr{X}
+باشد، معتبر نیست. در غیر این صورت می‌توان در آن خانه حسگر گذاشت.
+
+تابع
+\lr{get\_targets}
+کل نقشه را پیمایش می‌کند و مختصات خانه‌هایی را که مقدارشان
+\lr{T}
+است در یک لیست ذخیره می‌کند. این لیست در الگوریتم‌ها برای محاسبه تعداد هدف‌های پوشش داده‌شده استفاده می‌شود.
+
+\section{LocalSearchBase}
+بخش اصلی الگوریتم ها در کلاس
+\lr{LocalSearchBase}
+قرار دارد. همه الگوریتم‌ها از این کلاس ارث‌بری می‌کنند، چون همه آن‌ها به چند کار مشترک احتیاج دارند: شناختن خانه‌های معتبر، محاسبه فاصله، تشخیص پوشش هدف‌ها، ساختن همسایه و ارزیابی کیفیت یک جواب.
+
+در کلاس، اطلاعات مورد نیاز از
+\lr{world}
+گرفته می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+self.sensor_range = world.sensor_range
+self.max_sensors = world.max_sensors
+self.position_valid = world.is_valid_position
+self.targets = world.get_targets()
+\end{lstlisting}
+\end{latin}
+
+به این ترتیب الگوریتم‌ها لازم نیست هر بار مستقیم با جزئیات محیط کار کنند. مثلا وقتی لازم باشد بدانیم یک خانه مجاز است یا نه، کافی است از
+\lr{self.position\_valid}
+استفاده شود.
+
+\subsection{محاسبه فاصله و پوشش}
+فاصله بین حسگر و هدف با فاصله منهتنی حساب می‌شود:
+
+\[
+    d((x_1,y_1),(x_2,y_2)) = |x_1-x_2| + |y_1-y_2|
+\]
+
+در کد این فرمول در تابع
+\lr{distance}
+آمده است:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+return abs(a[0] - b[0]) + abs(a[1] - b[1])
+\end{lstlisting}
+\end{latin}
+
+بعد از آن، تابع
+\lr{covers}
+بررسی می‌کند که آیا یک حسگر، یک خانه مشخص را پوشش می‌دهد یا نه:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+return self.distance(sensor, position) <= self.sensor_range
+\end{lstlisting}
+\end{latin}
+
+بنابراین ناحیه پوشش هر حسگر به شکل یک لوزی منهتنی است. تابع
+\lr{covered\_targets}
+هم روی همه هدف‌ها می‌چرخد و اگر حداقل یک حسگر آن هدف را پوشش دهد، هدف را داخل مجموعه هدف‌های پوشش داده‌شده قرار می‌دهد.
+
+\subsection{فرمول هزینه}
+تابع
+\lr{evaluate}
+مهم‌ترین تابع مشترک پروژه است. همه الگوریتم‌ها با همین تابع کیفیت یک حالت را می‌سنجند. چون مسئله کمینه‌سازی است، هزینه کمتر بهتر است. فرمول هزینه به صورت زیر است:
+
+\[
+    Cost(s) =
+    200 \times U(s) + 1 \times O(s) + 10 \times |s|
+\]
+
+که در آن:
+
+\begin{itemize}
+    \item \lr{U(s)} تعداد هدف‌هایی است که هنوز پوشش داده نشده‌اند.
+    \item \lr{O(s)} تعداد خانه‌هایی است که بیش از یک بار توسط حسگرها پوشش داده شده‌اند.
+    \item \lr{|s|} تعداد حسگرهای استفاده‌شده در حالت فعلی است.
+\end{itemize}
+
+در کد، این بخش به شکل زیر نوشته شده است:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+uncovered_target_cost = uncovered_count * 200
+sensor_usage_cost = len(state) * 10
+overlap_tile_cost = overlap_tile_count * 1
+
+return uncovered_target_cost + overlap_tile_cost + sensor_usage_cost
+\end{lstlisting}
+\end{latin}
+
+دلیل انتخاب ضریب
+\lr{200}
+برای هدف‌های پوشش داده‌نشده این است که پوشش هدف‌ها مهم‌ترین بخش مسئله است. اگر یک هدف پوشش داده نشود، جواب باید جریمه زیادی بگیرد تا الگوریتم ترجیح دهد حتی با اضافه کردن چند حسگر، آن هدف را پوشش دهد. ضریب
+\lr{10}
+برای تعداد حسگرها باعث می‌شود وقتی دو جواب پوشش تقریبا مشابهی دارند، جواب با حسگر کمتر انتخاب شود. ضریب
+\lr{1}
+برای همپوشانی کوچک‌تر است، چون همپوشانی بد است اما از پوشش ندادن هدف‌ها مهم‌تر نیست. در واقع اولویت‌ها این‌گونه تنظیم شده‌اند:
+
+\begin{center}
+پوشش هدف‌ها \(\leftarrow\) کاهش تعداد حسگرها \(\leftarrow\) کاهش همپوشانی
+\end{center}
+
+تابع
+\lr{\_overlap\_tile\_count}
+برای محاسبه همپوشانی، همه خانه‌های داخل برد هر حسگر را بررسی می‌کند. اگر خانه‌ای قبلا توسط حسگر دیگری پوشش داده شده باشد، شمارنده همپوشانی زیاد می‌شود. این کار باعث می‌شود حسگرهایی که بیش از حد روی یک ناحیه مشترک افتاده‌اند جریمه شوند.
+
+\subsection{تولید همسایه‌ها}
+تابع
+\lr{generate\_neighbors}
+برای یک حالت فعلی، حالت‌های نزدیک به آن را تولید می‌کند. در جستجوی محلی، کیفیت همسایه‌ها خیلی مهم است، چون الگوریتم‌ها معمولا با حرکت از یک حالت به همسایه‌های آن به جواب بهتر می‌رسند.
+
+در این پروژه سه نوع همسایه ساخته می‌شود:
+
+\begin{itemize}
+    \item حذف یک حسگر از حالت فعلی.
+    \item اضافه کردن یک حسگر جدید به یکی از موقعیت‌های کاندید.
+    \item جابه‌جا کردن یک حسگر به یکی از چهار خانه بالا، پایین، چپ یا راست.
+\end{itemize}
+
+برای جلوگیری از تولید حالت تکراری، تابع داخلی
+\lr{add\_neighbor}
+هر کاندید را بعد از مرتب کردن به یک کلید تبدیل می‌کند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+key = tuple(sorted(candidate))
+if key not in seen and len(candidate) <= self.max_sensors:
+    seen.add(key)
+    neighbors.append(candidate)
+\end{lstlisting}
+\end{latin}
+
+این کار مهم است، چون ترتیب حسگرها در لیست نباید باعث شود یک جواب چند بار به عنوان حالت متفاوت وارد جستجو شود. شرط
+\lr{len(candidate) <= self.max\_sensors}
+هم اجازه نمی‌دهد تعداد حسگرها از محدودیت نقشه بیشتر شود.
+
+برای اضافه کردن حسگر، کد فقط کاملا تصادفی عمل نمی‌کند. ابتدا هدف‌هایی پیدا می‌شوند که هنوز پوشش داده نشده‌اند. سپس خانه‌های معتبر اطراف آن هدف‌ها به عنوان کاندید اضافه شدن حسگر در نظر گرفته می‌شوند. این انتخاب باعث می‌شود همسایه‌های تولیدشده بیشتر به سمت بهتر کردن پوشش هدف‌ها بروند. در کنار آن، تعدادی موقعیت تصادفی هم اضافه می‌شود تا الگوریتم‌ها کاملا در یک ناحیه کوچک گیر نکنند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+random_candidates = random.sample(
+    self.valid_positions(),
+    k=min(len(self.valid_positions()), max(10, self.max_sensors * 2)),
+)
+\end{lstlisting}
+\end{latin}
+
+عدد
+\lr{max(10, self.max\_sensors * 2)}
+یعنی اگر تعداد حسگرهای مجاز کم باشد، حداقل ۱۰ کاندید تصادفی بررسی می‌شود و اگر تعداد حسگرهای مجاز زیاد باشد، حدود دو برابر آن موقعیت تصادفی وارد لیست کاندیدها می‌شود. این انتخاب تعادلی بین تنوع و زمان اجرا ایجاد می‌کند.
+
+\section{الگوریتم \lr{Hill Climbing}}
+الگوریتم
+\lr{Hill Climbing}
+در فایل
+\lr{hill\_climbing.py}
+پیاده‌سازی شده است. ایده اصلی آن ساده است: از یک جواب شروع می‌کنیم، همه همسایه‌های آن را می‌سنجیم، بهترین همسایه را انتخاب می‌کنیم و اگر بهتر بود به آن حرکت می‌کنیم. این کار تا وقتی ادامه پیدا می‌کند که دیگر همسایه بهتری وجود نداشته باشد یا تعداد تکرارها به حد نهایی برسد.
+
+مقادیر پیش‌فرض الگوریتم در ابتدای تابع
+\lr{run}
+مشخص شده‌اند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+max_iterations = kwargs.get("max_iterations", 500)
+max_restarts = kwargs.get("max_restarts", 4)
+sideways_limit = kwargs.get("sideways_limit", 8)
+improvement_epsilon = kwargs.get("improvement_epsilon", 1e-9)
+\end{lstlisting}
+\end{latin}
+
+\lr{max\_iterations = 500}
+برای این انتخاب شده است که الگوریتم فرصت کافی برای اصلاح جواب داشته باشد، اما در نقشه‌های بزرگ بی‌دلیل طولانی اجرا نشود.
+\lr{max\_restarts = 4}
+به الگوریتم اجازه می‌دهد اگر در یک نقطه محلی گیر کرد، چند بار از یک حالت تصادفی جدید شروع کند.
+\lr{sideways\_limit = 8}
+برای حرکت‌های هم‌سطح است؛ یعنی وقتی همسایه هزینه برابر دارد، چند بار اجازه حرکت داده می‌شود تا شاید الگوریتم از یک ناحیه تخت عبور کند.
+\lr{improvement\_epsilon = 1e-9}
+هم برای مقایسه عددی استفاده شده است تا اختلاف‌های بسیار کوچک باعث تصمیم اشتباه نشوند.
+
+در شروع، اگر حالت اولیه خالی باشد، یک حالت تصادفی ساخته می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+current_state = [] if not initial_state else initial_state
+if not current_state:
+    current_state = self.initialize_state()
+\end{lstlisting}
+\end{latin}
+
+سپس هزینه حالت فعلی محاسبه می‌شود و همان حالت به عنوان بهترین حالت اولیه ذخیره می‌شود. در هر تکرار، ابتدا همسایه‌ها ساخته می‌شوند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+neighbors = self.generate_neighbors(current_state)
+\end{lstlisting}
+\end{latin}
+
+اگر همسایه‌ای وجود نداشته باشد، جستجو متوقف می‌شود. در غیر این صورت، هزینه همه همسایه‌ها محاسبه می‌شود و کم‌هزینه‌ترین همسایه انتخاب می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+neighbor_costs = [
+    (self.evaluate(neighbor), neighbor) for neighbor in neighbors
+]
+next_cost, next_state = min(neighbor_costs, key=lambda item: item[0])
+\end{lstlisting}
+\end{latin}
+
+بعد از انتخاب بهترین همسایه، سه حالت ممکن است پیش بیاید. اگر هزینه همسایه کمتر از هزینه فعلی باشد، الگوریتم به آن حرکت می‌کند و شمارنده حرکت‌های هم‌سطح صفر می‌شود. اگر هزینه برابر باشد و هنوز تعداد حرکت‌های هم‌سطح به حد ۸ نرسیده باشد، حرکت هم‌سطح انجام می‌شود. اگر نه بهبود وجود داشته باشد و نه حرکت هم‌سطح مجاز باشد، الگوریتم تا ۴ بار اجازه شروع دوباره دارد:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+elif restarts_used < max_restarts:
+    current_state = self.initialize_state()
+    current_cost = self.evaluate(current_state)
+    restarts_used += 1
+    sideways_used = 0
+\end{lstlisting}
+\end{latin}
+
+این طراحی باعث می‌شود
+\lr{Hill Climbing}
+از حالت کاملا حریصانه کمی بهتر شود. نسخه حریصانه ممکن است خیلی زود در یک بهینه محلی متوقف شود، اما در این پیاده‌سازی حرکت هم‌سطح و شروع دوباره شانس خروج از چنین نقاطی را افزایش می‌دهد. با این حال، الگوریتم هنوز تضمین نمی‌کند جواب سراسری پیدا شود، چون فقط همسایه‌های نزدیک حالت فعلی را می‌بیند.
+
+\section{الگوریتم\lr{Simulated Annealing}}
+الگوریتم
+\lr{Simulated Annealing}
+در فایل
+\lr{simulated\_annealing.py}
+پیاده‌سازی شده است. این الگوریتم شبیه
+\lr{Hill Climbing}
+با همسایه‌ها کار می‌کند، اما یک تفاوت مهم دارد: گاهی به جواب بدتر هم حرکت می‌کند. دلیل این کار فرار از بهینه‌های محلی است. در ابتدای اجرا دما زیاد است و الگوریتم راحت‌تر حرکت بدتر را قبول می‌کند. با گذشت زمان، دما کم می‌شود و الگوریتم محافظه‌کارتر عمل می‌کند.
+
+تابع زمان‌بندی دما به این صورت است:
+
+\[
+    T(t) = T_0 \times \alpha^t
+\]
+
+در کد:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def schedule(self, initial_temperature, cooling_rate, t):
+    return initial_temperature * math.pow(cooling_rate, t)
+\end{lstlisting}
+\end{latin}
+
+مقادیر پیش‌فرض الگوریتم عبارت‌اند از:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+max_iterations = kwargs.get("max_iterations", 1000)
+initial_temperature = kwargs.get("initial_temperature", 100.0)
+cooling_rate = kwargs.get("cooling_rate", 0.995)
+min_temperature = kwargs.get("min_temperature", 0.001)
+\end{lstlisting}
+\end{latin}
+
+دمای اولیه
+\lr{100}
+نسبت به مقیاس تابع هزینه مقدار متوسط و قابل قبولی است. چون جریمه یک هدف پوشش داده‌نشده
+\lr{200}
+است، دمای
+\lr{100}
+اجازه می‌دهد در ابتدای کار بعضی حرکت‌های بدتر پذیرفته شوند، اما حرکت‌های خیلی بد همچنان احتمال کمی دارند.
+نرخ سرد شدن
+\lr{0.995}
+باعث کاهش آرام دما می‌شود. اگر نرخ خیلی کوچک باشد، دما سریع کم می‌شود و الگوریتم شبیه
+\lr{Hill Climbing}
+می‌شود. اگر خیلی نزدیک به ۱ باشد، زمان زیادی صرف جستجوی تصادفی می‌شود. مقدار
+\lr{1000}
+برای
+\lr{max\_iterations}
+نیز به عنوان محدودیت عملی زمان اجرا در نظر گرفته شده است. چون این الگوریتم به صورت تصادفی همسایه انتخاب می‌کند و ممکن است حرکت‌های بدتر را هم بپذیرد، اگر هیچ سقفی برای تعداد تکرارها نداشته باشیم، زمان اجرا مخصوصا در نقشه‌های بزرگ قابل پیش‌بینی نیست. با این نرخ سرد شدن، دما در پایان ۱۰۰۰ تکرار هنوز حدود
+\lr{0.67}
+است، پس در اجرای پیش‌فرض معمولا شرط تعداد تکرار باعث توقف می‌شود، نه شرط
+\lr{min\_temperature}.
+
+در هر تکرار، یک همسایه تصادفی از حالت فعلی گرفته می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+next_state = self.get_random_neighbor(current_state)
+next_cost = self.evaluate(next_state)
+\end{lstlisting}
+\end{latin}
+
+اگر همسایه بهتر یا برابر باشد، همیشه پذیرفته می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+delta = next_cost - current_cost
+if delta <= 0:
+    current_state = next_state
+    current_cost = next_cost
+\end{lstlisting}
+\end{latin}
+
+اگر همسایه بدتر باشد، با احتمال زیر پذیرفته می‌شود:
+
+\[
+    P = e^{-\Delta / T}
+\]
+
+که در آن
+\(\Delta\)
+اختلاف هزینه همسایه و حالت فعلی است. اگر اختلاف هزینه زیاد باشد یا دما کم باشد، احتمال پذیرش کم می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+accept_probability = math.exp(-delta / temperature)
+if random.random() < accept_probability:
+    current_state = next_state
+    current_cost = next_cost
+\end{lstlisting}
+\end{latin}
+
+حتی اگر الگوریتم به یک حالت بدتر حرکت کند، بهترین حالت دیده‌شده تا آن لحظه جداگانه ذخیره می‌شود. بنابراین خروجی نهایی بهترین حالتی است که در کل مسیر دیده شده، نه لزوما آخرین حالت.
+
+\section{الگوریتم ژنتیک}
+الگوریتم ژنتیک در فایل
+\lr{genetic\_algorithm.py}
+پیاده‌سازی شده است. در این روش به جای اینکه فقط یک جواب را تغییر دهیم، یک جمعیت از جواب‌ها نگه می‌داریم. در هر نسل، افراد بهتر شانس بیشتری برای انتخاب شدن به عنوان والد دارند. سپس از ترکیب والدها فرزند ساخته می‌شود و گاهی روی فرزند جهش انجام می‌شود.
+
+مقادیر پیش‌فرض الگوریتم در ابتدای تابع
+\lr{run}
+آمده‌اند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+generations = kwargs.get("generations", kwargs.get("max_iterations", 500))
+population_size = max(2, kwargs.get("population_size", 30))
+mutation_rate = kwargs.get("mutation_rate", 0.1)
+fit_enough = kwargs.get("fit_enough", 0)
+\end{lstlisting}
+\end{latin}
+
+تعداد نسل‌ها
+\lr{500}
+است تا الگوریتم فرصت کافی برای ترکیب جواب‌ها داشته باشد.
+اندازه جمعیت
+\lr{30}
+انتخاب شده است، چون اگر جمعیت خیلی کوچک باشد تنوع کم می‌شود و اگر خیلی بزرگ باشد هر نسل زمان بیشتری می‌گیرد.
+نرخ جهش
+\lr{0.1}
+یعنی حدود ۱۰ درصد فرزندها تغییر تصادفی پیدا می‌کنند. این مقدار برای حفظ تنوع مناسب است، اما آن‌قدر زیاد نیست که رفتار الگوریتم کاملا تصادفی شود.
+\lr{fit\_enough = 0}
+یعنی اگر هزینه به صفر برسد، جواب کامل پیدا شده و اجرا متوقف می‌شود. البته با توجه به جریمه تعداد حسگرها، هزینه صفر فقط زمانی ممکن است که هیچ حسگری لازم نباشد یا تابع هزینه در یک نقشه خاص اجازه چنین حالتی بدهد؛ در بیشتر نقشه‌ها الگوریتم با حد نسل متوقف می‌شود.
+
+\subsection{جمعیت اولیه و تابع{\lr{fitness}}}
+جمعیت اولیه با خود حالت اولیه شروع می‌شود و بقیه افراد به صورت تصادفی ساخته می‌شوند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+population = [initial_state]
+
+while len(population) < population_size:
+    population.append(self.random_individual())
+\end{lstlisting}
+\end{latin}
+
+هر فرد یک لیست از مختصات حسگرهاست. تابع
+\lr{random\_individual}
+ابتدا همه موقعیت‌های معتبر را می‌گیرد، سپس تعداد حسگرها را به طور تصادفی بین ۱ و بیشینه مجاز انتخاب می‌کند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+sensor_count = random.randint(1, max_count)
+return random.sample(valid_positions, sensor_count)
+\end{lstlisting}
+\end{latin}
+
+استفاده از
+\lr{random.sample}
+باعث می‌شود یک موقعیت دوبار در یک فرد تکرار نشود.
+
+چون تابع اصلی پروژه هزینه را کمینه می‌کند، برای انتخاب ژنتیکی لازم است آن را به شایستگی تبدیل کنیم، یعنی مقدار بزرگ‌تر بهتر باشد. این کار با فرمول زیر انجام شده است:
+
+\[
+    fitness(s) = \frac{1}{1 + Cost(s)}
+\]
+
+در کد:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def fitness(self, individual):
+    return 1 / (1 + self.evaluate(individual))
+\end{lstlisting}
+\end{latin}
+
+اضافه شدن عدد ۱ در مخرج برای جلوگیری از تقسیم بر صفر است. هرچه هزینه کمتر باشد، مقدار شایستگی بزرگ‌تر می‌شود و فرد شانس بیشتری برای انتخاب به عنوان والد دارد.
+
+\subsection{انتخاب، تولیدمثل و جهش}
+در هر نسل، ابتدا وزن انتخاب هر فرد بر اساس شایستگی آن محاسبه می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+weights = self.weighted_by(population)
+\end{lstlisting}
+\end{latin}
+
+سپس برای تولید هر فرزند، دو والد با
+\lr{random.choices}
+و با توجه به همین وزن‌ها انتخاب می‌شوند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+parent1, parent2 = random.choices(
+    population,
+    weights=weights,
+    k=2
+)
+\end{lstlisting}
+\end{latin}
+
+تابع
+\lr{reproduce}
+از برش یک‌نقطه‌ای استفاده می‌کند. ابتدا یک نقطه
+\lr{c}
+بین ۱ و طول والد اول انتخاب می‌شود. بخش اول فرزند از والد اول و بخش دوم آن از والد دوم گرفته می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+c = random.randint(1, n)
+child = parent1[:c] + parent2[c:]
+\end{lstlisting}
+\end{latin}
+
+بعد از تولید فرزند، تابع
+\lr{clean\_individual}
+اجرا می‌شود. این تابع موقعیت‌های تکراری یا نامعتبر را حذف می‌کند و اگر تعداد حسگرها از حد مجاز بیشتر شود، بقیه را کنار می‌گذارد. این مرحله لازم است، چون ترکیب دو والد ممکن است فرزندی بسازد که در آن یک مختصات چند بار آمده باشد.
+
+جهش با احتمال
+\lr{0.1}
+روی فرزند اعمال می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+if random.random() < mutation_rate:
+    child = self.mutate(child)
+\end{lstlisting}
+\end{latin}
+
+در تابع
+\lr{mutate}
+یکی از سه عمل
+\lr{add}
+،
+\lr{remove}
+یا
+\lr{replace}
+تصادفی انتخاب می‌شود. در
+\lr{add}
+یک حسگر جدید به یک موقعیت معتبر اضافه می‌شود، در
+\lr{remove}
+یکی از حسگرها حذف می‌شود، و در
+\lr{replace}
+یکی از حسگرها با یک موقعیت معتبر دیگر عوض می‌شود. اگر یک عمل به خاطر محدودیت‌ها ممکن نباشد، بخش
+\lr{else}
+در عمل بیشتر نقش جایگزینی را دارد.
+
+در این پیاده‌سازی، بهترین فرد هر نسل برای ساخت نسل بعدی به صورت مستقیم نگه داشته نمی‌شود، یعنی
+\lr{elitism}
+صریح نداریم. با این حال، بهترین جواب دیده‌شده در کل اجرا در متغیرهای
+\lr{best\_state}
+و
+\lr{best\_cost}
+ذخیره می‌شود. بنابراین حتی اگر بهترین فرد از جمعیت حذف شود، جواب نهایی از بین نمی‌رود.
+
+\section{الگوریتم Beam}
+\lr{Beam Search}
+در فایل
+\lr{beam\_search.py}
+پیاده‌سازی شده است. این الگوریتم از نظر ایده بین جستجوی حریصانه و جستجوی کامل قرار می‌گیرد. به جای اینکه فقط یک حالت فعلی داشته باشیم، در هر مرحله چند حالت خوب نگه می‌داریم. تعداد این حالت‌ها با
+\lr{beam\_width}
+مشخص می‌شود.
+
+در شروع تابع
+\lr{run}
+دو مقدار پیش‌فرض داریم:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+max_iterations = kwargs.get("max_iterations", 100)
+beam_width = max(1, kwargs.get("beam_width", 5))
+\end{lstlisting}
+\end{latin}
+
+\lr{beam\_width = 5}
+یعنی در هر مرحله فقط ۵ حالت برتر نگه داشته می‌شود. اگر این عدد ۱ باشد، الگوریتم تقریبا شبیه جستجوی حریصانه می‌شود. اگر خیلی بزرگ باشد، زمان اجرا و تعداد ارزیابی‌ها زیاد می‌شود. عدد ۵ برای این پروژه تعادل مناسبی ایجاد می‌کند.
+\lr{max\_iterations = 100}
+نیز به عنوان سقف عملی انتخاب شده است، چون در هر تکرار همه همسایه‌های همه اعضا ساخته و ارزیابی می‌شوند.
+
+تابع
+\lr{initial\_beam}
+مکان اولیه را می‌سازد. اگر حالت اولیه وجود داشته باشد، اول همان وارد می‌شود. سپس تا وقتی تعداد حالت‌ها به
+\lr{beam\_width}
+برسد، حالت‌های تصادفی غیرتکراری ساخته می‌شوند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+while len(beam) < beam_width and attempts < beam_width * 10:
+    state = self.random_state()
+
+    if not self.seen_before(state, beam):
+        beam.append(state)
+
+    attempts += 1
+\end{lstlisting}
+\end{latin}
+
+شرط
+\lr{attempts < beam\_width * 10}
+برای جلوگیری از حلقه بی‌نهایت است. چون حالت‌ها تصادفی ساخته می‌شوند، ممکن است چند بار حالت تکراری تولید شود. این شرط به کد اجازه می‌دهد برای ساخت هر عضو حدود ۱۰ بار تلاش کند، اما اگر حالت جدید پیدا نشد، برنامه گیر نکند.
+
+در حلقه اصلی، ابتدا برای همه حالت‌ها همسایه تولید می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+for state in beam:
+    neighbors = self.generate_neighbors(state)
+
+    if not neighbors:
+        successors.append(state)
+    else:
+        successors.extend(neighbors)
+\end{lstlisting}
+\end{latin}
+
+اگر یک حالت همسایه نداشته باشد، خود آن حالت داخل
+\lr{successors}
+نگه داشته می‌شود. این کار باعث می‌شود یک جواب خوب فقط به خاطر نداشتن همسایه حذف نشود. اگر همسایه داشته باشد، همه همسایه‌ها به لیست جانشین‌ها اضافه می‌شوند. بعد از جمع شدن همه جانشین‌ها، اگر این لیست خالی باشد جستجو متوقف می‌شود.
+
+سپس تابع
+\lr{best\_states}
+اجرا می‌شود. این تابع اول حالت‌های تکراری را حذف می‌کند، بعد برای هر حالت هزینه را محاسبه می‌کند، حالت‌ها را بر اساس هزینه صعودی مرتب می‌کند و فقط
+\lr{beam\_width}
+حالت اول را برمی‌گرداند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+scored_states = [(self.evaluate(state), state) for state in unique_states]
+scored_states.sort(key=lambda item: item[0])
+
+return [state for _, state in scored_states[:beam_width]]
+\end{lstlisting}
+\end{latin}
+
+در پایان هر تکرار، بهترین حالت با بهترین حالت کلی مقایسه می‌شود. اگر هزینه آن کمتر باشد، جواب نهایی به‌روزرسانی می‌شود. اگر هزینه به صفر برسد، الگوریتم زودتر متوقف می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+if best_cost == 0:
+    break
+\end{lstlisting}
+\end{latin}
+
+از آنجا که تابع هزینه شامل جریمه تعداد حسگرهاست، رسیدن به صفر در نقشه‌های معمولی خیلی محتمل نیست، اما این شرط برای کامل بودن الگوریتم و توقف سریع در حالت ایده‌آل گذاشته شده است.
+
+\section{مقایسه رفتار الگوریتم‌ها}
+هر چهار الگوریتم از یک تابع هزینه و یک تابع تولید همسایه استفاده می‌کنند، اما روش حرکت آن‌ها در فضای جواب متفاوت است.
+
+\begin{itemize}
+    \item \lr{Hill Climbing}: سریع و ساده است، اما ممکن است در بهینه محلی گیر کند. حرکت هم‌سطح و شروع دوباره این مشکل را کمتر می‌کند.
+    \item \lr{Simulated Annealing}: نسبت به صعود تپه‌ای انعطاف بیشتری دارد، چون در دمای بالا گاهی حرکت بدتر را می‌پذیرد. کیفیت آن به برنامه سرد شدن وابسته است.
+    \item \lr{Genetic Algorithm}: چند جواب را هم‌زمان بررسی می‌کند و با ترکیب والدها می‌تواند نواحی مختلف فضای جستجو را امتحان کند. در عوض، به جمعیت، جهش و تعداد نسل‌ها حساس است.
+    \item \lr{Beam Search}: در هر مرحله چند جواب خوب را نگه می‌دارد و از حذف زودهنگام همه مسیرها جلوگیری می‌کند. اگر عرض پرتو کوچک باشد تنوع کم می‌شود و اگر بزرگ باشد هزینه محاسباتی بالا می‌رود.
+\end{itemize}
+
+برای داشتن یک مقایسه عددی، یک بار اجرای نمونه روی
+\lr{map1}
+با مقدار ثابت
+\lr{random.seed(42)}
+انجام شد. چون حالت اولیه و بعضی مراحل الگوریتم‌ها تصادفی هستند، این جدول فقط نمونه‌ای از رفتار برنامه است و ممکن است در اجرای بدون
+\lr{seed}
+اعداد کمی تغییر کنند.
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{الگوریتم} & \textbf{هزینه نهایی} & \textbf{تعداد حسگرها} & \textbf{تعداد تکرار ثبت‌شده} \\
+\hline
+\lr{Hill Climbing} & \lr{130} & \lr{13} & \lr{111} \\
+\hline
+\lr{Simulated Annealing} & \lr{177} & \lr{16} & \lr{1000} \\
+\hline
+\lr{Genetic Algorithm} & \lr{363} & \lr{15} & \lr{500} \\
+\hline
+\lr{Beam Search} & \lr{130} & \lr{13} & \lr{100} \\
+\hline
+\end{tabular}
+\end{center}
+
+در این اجرای نمونه، صعود تپه‌ای و جستجوی پرتویی به هزینه
+\lr{130}
+رسیدند. تبرید شبیه‌سازی‌شده به خاطر حرکت‌های تصادفی و پذیرش بعضی حالت‌های بدتر، در این اجرا هزینه بالاتری داشت، ولی مزیت آن این است که در اجراهای دیگر ممکن است از بهینه محلی فرار کند. الگوریتم ژنتیک در این اجرای خاص به جواب ضعیف‌تری رسید، که می‌تواند به نبود
+\lr{elitism}
+صریح و محدود بودن تعداد نسل‌ها مربوط باشد. البته چون الگوریتم‌ها تصادفی هستند، برای نتیجه‌گیری دقیق‌تر بهتر است هر الگوریتم چند بار اجرا و میانگین هزینه گزارش شود.
+
+\section{جمع‌بندی}
+در این پروژه، مسئله جایگذاری حسگر به صورت یک مسئله جستجوی محلی مدل شد. هر حالت، مجموعه‌ای از مختصات حسگرهاست و کیفیت حالت با تابع هزینه‌ای سنجیده می‌شود که سه عامل اصلی را در نظر می‌گیرد: هدف‌های پوشش داده‌نشده، همپوشانی ناحیه پوشش حسگرها و تعداد حسگرهای استفاده‌شده. ضرایب تابع هزینه طوری انتخاب شده‌اند که پوشش هدف‌ها اولویت اصلی باشد و بعد از آن، تعداد حسگرها و همپوشانی کاهش پیدا کند.
+
+کلاس
+\lr{LocalSearchBase}
+نقش پایه مشترک را دارد و منطق اصلی مسئله در آن قرار گرفته است. چهار الگوریتم
+\lr{Hill Climbing}
+،
+\lr{Simulated Annealing}
+،
+\lr{Genetic Algorithm}
+و
+\lr{Beam Search}
+روی همین پایه اجرا می‌شوند. تفاوت آن‌ها در روش انتخاب حرکت بعدی است: climbing hill  بهترین همسایه را انتخاب می‌کند، annealing simulated گاهی همسایه بدتر را هم می‌پذیرد، ژنتیک با جمعیت و ترکیب جواب‌ها کار می‌کند، وsearch beam چند حالت برتر را در هر مرحله نگه می‌دارد.
+
+به طور کلی، اگر سرعت و سادگی مهم باشد،
+\lr{Hill Climbing}
+انتخاب خوبی است. اگر بخواهیم شانس فرار از بهینه محلی بیشتر شود،
+\lr{Simulated Annealing}
+مناسب‌تر است. اگر بخواهیم چند ناحیه از فضای جواب به صورت هم‌زمان بررسی شود، الگوریتم ژنتیک کاربرد دارد. اگر هم بخواهیم بین جستجوی حریصانه و نگه داشتن چند گزینه خوب تعادل برقرار کنیم،
+\lr{Beam Search}
+گزینه مناسبی است.
+
+\end{document}

@@ -1,0 +1,32 @@
+{
+    "latex-workshop.latex.outDir": "%DIR%/out",
+    "cSpell.language": "en,fa-IR,fa",
+    "latex-workshop.latex.tools": [
+      {
+        "name": "xe",
+        "command": "latexmk",
+        "args": [
+          "-xelatex",
+          "-synctex=1",
+          "-interaction=nonstopmode",
+          "-file-line-error",
+          "-outdir=%OUTDIR%",
+          "%DOC%"
+        ],
+        "env": {}
+      },
+      {
+        "name": "pdf mac & linux",
+        "command": "cp",
+        "args": ["%OUTDIR%/%DOCFILE%.pdf", "%DIR%/"]
+      }
+    ],
+  
+    "latex-workshop.latex.recipes": [
+      {
+        "name": "xela",
+        "tools": ["xe", "pdf mac & linux"]
+      }
+    ],
+    "latex-workshop.latex.recipe.default": "xela"
+  }
