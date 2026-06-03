@@ -5,7 +5,7 @@ from search.local_search_base import LocalSearchBase
 
 class GeneticAlgorithm(LocalSearchBase):
     def run(self, initial_state, **kwargs):
-        generations = kwargs.get("generations", kwargs.get("max_iterations", 500))
+        generations = kwargs.get("generations", kwargs.get("max_iterations", 1000))
         population_size = max(2, kwargs.get("population_size", 30))
         mutation_rate = kwargs.get("mutation_rate", 0.1)
         fit_enough = kwargs.get("fit_enough", 0)
