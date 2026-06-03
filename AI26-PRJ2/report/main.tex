@@ -463,12 +463,16 @@ next_cost = self.evaluate(next_state)
 \end{lstlisting}
 \end{latin}
 
-اگر همسایه بهتر یا برابر باشد، همیشه پذیرفته می‌شود:
+در این پیاده‌سازی مقدار
+\lr{delta}
+به صورت اختلاف هزینه حالت فعلی و همسایه محاسبه می‌شود. بنابراین اگر
+\lr{delta}
+مثبت باشد، همسایه هزینه کمتری دارد و همیشه پذیرفته می‌شود:
 
 \begin{latin}
 \begin{lstlisting}[language=Python]
-delta = next_cost - current_cost
-if delta <= 0:
+delta = current_cost - next_cost
+if delta > 0:
     current_state = next_state
     current_cost = next_cost
 \end{lstlisting}
@@ -477,16 +481,20 @@ if delta <= 0:
 اگر همسایه بدتر باشد، با احتمال زیر پذیرفته می‌شود:
 
 \[
-    P = e^{-\Delta / T}
+    P = e^{\Delta / T}
 \]
 
 که در آن
 \(\Delta\)
-اختلاف هزینه همسایه و حالت فعلی است. اگر اختلاف هزینه زیاد باشد یا دما کم باشد، احتمال پذیرش کم می‌شود:
+برابر
+\lr{current\_cost - next\_cost}
+است. برای حرکت بدتر، این مقدار منفی می‌شود؛ پس اگر همسایه خیلی بدتر باشد یا دما کم باشد، مقدار
+\(e^{\Delta/T}\)
+کوچک‌تر شده و احتمال پذیرش کاهش پیدا می‌کند:
 
 \begin{latin}
 \begin{lstlisting}[language=Python]
-accept_probability = math.exp(-delta / temperature)
+accept_probability = math.exp(delta / temperature)
 if random.random() < accept_probability:
     current_state = next_state
     current_cost = next_cost

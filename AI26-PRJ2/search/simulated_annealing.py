@@ -31,12 +31,12 @@ class SimulatedAnnealing(LocalSearchBase):
             next_state = self.get_random_neighbor(current_state)
             next_cost = self.evaluate(next_state)
 
-            delta = next_cost - current_cost
-            if delta <= 0:
+            delta = current_cost - next_cost
+            if delta > 0:
                 current_state = next_state
                 current_cost = next_cost
             else:
-                accept_probability = math.exp(-delta / temperature)
+                accept_probability = math.exp(delta / temperature)
                 if random.random() < accept_probability:
                     current_state = next_state
                     current_cost = next_cost
