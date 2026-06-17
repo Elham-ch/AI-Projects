@@ -2,8 +2,9 @@ from agents.search_utils import evaluate, ordered_moves
 
 
 class MinimaxAgent:
-    def __init__(self, depth=4):
+    def __init__(self, depth=4, endgame_empty=5):
         self.depth = depth
+        self.endgame_empty = endgame_empty
         self.nodes_searched = 0
 
     def evaluate(self, game, player):
@@ -17,7 +18,7 @@ class MinimaxAgent:
     def max_value(self, game, depth, root_player):
         self.nodes_searched += 1
 
-        if game.game_over() or depth == 0:
+        if game.game_over() or (depth <= 0 and not self.should_search_to_end(game)):
             return evaluate(game, root_player), None
 
         legal_moves = game.get_valid_moves(root_player)
@@ -42,7 +43,7 @@ class MinimaxAgent:
     def min_value(self, game, depth, root_player):
         self.nodes_searched += 1
 
-        if game.game_over() or depth == 0:
+        if game.game_over() or (depth <= 0 and not self.should_search_to_end(game)):
             return evaluate(game, root_player), None
 
         opponent = -root_player
@@ -64,3 +65,14 @@ class MinimaxAgent:
                 value = value2
                 best_move = move
         return value, best_move
+
+    def should_search_to_end(self, game):
+        return self.empty_count(game) <= self.endgame_empty
+
+    def empty_count(self, game):
+        count = 0
+        for row in game.board:
+            for cell in row:
+                if cell == 0:
+                    count += 1
+        return count
