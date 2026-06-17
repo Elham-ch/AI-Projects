@@ -1,7 +1,7 @@
 import csv
-import random
 import time
 from pathlib import Path
+import random
 
 from agents.alphabeta_agent import AlphaBetaAgent
 from agents.greedy_agent import GreedyAgent
@@ -11,10 +11,10 @@ from game.othello import BLACK, WHITE, Othello
 
 BOARD_SIZE = 6
 GAMES = 20
-SEED = 37
+OPENING_RANDOM_MOVES = 2
 OPPONENTS = ["random", "greedy"]
 MINIMAX_DEPTHS = [2, 3, 4]
-ALPHABETA_DEPTHS = [2, 3, 4]
+ALPHABETA_DEPTHS = [2, 3, 4, 5]
 CSV_PATH = Path(__file__).with_name("experiment_results.csv")
 
 
@@ -30,9 +30,38 @@ def build_agent(kind, depth=None):
     raise ValueError(f"Unknown agent: {kind}")
 
 
-def play_game(search_kind, depth, opponent_kind, search_color):
+def play_random_opening(game, player):
+    for _ in range(OPENING_RANDOM_MOVES):
+        if game.game_over():
+            break
+
+        moves = game.get_valid_moves(player)
+        if moves:
+            game.make_move(player, *random.choice(moves))
+
+        player = -player
+
+    return player
+
+
+def make_openings():
+    colors = [BLACK] * (GAMES // 2) + [WHITE] * (GAMES // 2)
+    if len(colors) < GAMES:
+        colors.append(BLACK)
+
+    openings = []
+    for color in colors:
+        game = Othello(BOARD_SIZE)
+        player = play_random_opening(game, BLACK)
+        openings.append((game, player, color))
+
+    return openings
+
+
+def play_game(search_kind, depth, opponent_kind, opening):
+    opening_game, player, search_color = opening
     search_agent = build_agent(search_kind, depth)
-    opponent_agent = build_agent(opponent_kind)
+    opponent_agent = build_agent(opponent_kind, depth)
 
     if search_color == BLACK:
         black_agent = search_agent
@@ -41,8 +70,7 @@ def play_game(search_kind, depth, opponent_kind, search_color):
         black_agent = opponent_agent
         white_agent = search_agent
 
-    game = Othello(BOARD_SIZE)
-    player = BLACK
+    game = opening_game.copy()
     move_times = []
     node_counts = []
 
@@ -56,7 +84,9 @@ def play_game(search_kind, depth, opponent_kind, search_color):
             elapsed = time.perf_counter() - start
 
             if move not in moves:
-                raise ValueError(f"{agent.__class__.__name__} returned illegal move {move}")
+                raise ValueError(
+                    f"{agent.__class__.__name__} returned illegal move {move}"
+                )
 
             if agent is search_agent:
                 move_times.append(elapsed)
@@ -82,13 +112,12 @@ def play_game(search_kind, depth, opponent_kind, search_color):
     }
 
 
-def run_matchup(agent_kind, depth, opponent_kind):
-    colors = [BLACK] * (GAMES // 2) + [WHITE] * (GAMES // 2)
-    if len(colors) < GAMES:
-        colors.append(BLACK)
-
+def run_matchup(agent_kind, depth, opponent_kind, openings):
     start = time.perf_counter()
-    games = [play_game(agent_kind, depth, opponent_kind, color) for color in colors]
+    games = [
+        play_game(agent_kind, depth, opponent_kind, opening)
+        for opening in openings
+    ]
     runtime = time.perf_counter() - start
 
     wins = sum(game["win"] for game in games)
@@ -113,18 +142,22 @@ def run_matchup(agent_kind, depth, opponent_kind):
 
 def run_all():
     print()
-    print("Running experiments...")
-    print(f"board={BOARD_SIZE}x{BOARD_SIZE}, games={GAMES}, seed={SEED}")
+    print("Running Othello experiments...")
+    print(
+        f"board={BOARD_SIZE}x{BOARD_SIZE}, games={GAMES}, "
+        f"opening_random_moves={OPENING_RANDOM_MOVES}"
+    )
     print()
 
+    openings = make_openings()
     rows = []
     for opponent in OPPONENTS:
         for depth in MINIMAX_DEPTHS:
-            row = run_matchup("minimax", depth, opponent)
+            row = run_matchup("minimax", depth, opponent, openings)
             rows.append(row)
             print_experiment_result(row)
         for depth in ALPHABETA_DEPTHS:
-            row = run_matchup("alphabeta", depth, opponent)
+            row = run_matchup("alphabeta", depth, opponent, openings)
             rows.append(row)
             print_experiment_result(row)
     return rows
@@ -137,7 +170,7 @@ def average(values):
 def print_results(rows):
     print()
     print("Othello experiment results")
-    print(f"board={BOARD_SIZE}x{BOARD_SIZE}, games={GAMES}, seed={SEED}")
+    print(f"board={BOARD_SIZE}x{BOARD_SIZE}, games={GAMES}")
     print()
 
     for opponent in OPPONENTS:
@@ -170,16 +203,18 @@ def print_table(rows):
     table = [headers]
 
     for row in rows:
-        table.append([
-            row["agent"],
-            str(row["depth"]),
-            f"{row['wins']}-{row['losses']}-{row['draws']}",
-            f"{100 * row['win_rate']:.0f}%",
-            f"{row['avg_score_diff']:.2f}",
-            f"{1000 * row['avg_move_time']:.2f}",
-            f"{row['avg_nodes']:.1f}",
-            f"{row['runtime']:.2f}s",
-        ])
+        table.append(
+            [
+                row["agent"],
+                str(row["depth"]),
+                f"{row['wins']}-{row['losses']}-{row['draws']}",
+                f"{100 * row['win_rate']:.0f}%",
+                f"{row['avg_score_diff']:.2f}",
+                f"{1000 * row['avg_move_time']:.2f}",
+                f"{row['avg_nodes']:.1f}",
+                f"{row['runtime']:.2f}s",
+            ]
+        )
 
     widths = [max(len(line[col]) for line in table) for col in range(len(headers))]
     separator = "-+-".join("-" * width for width in widths)
@@ -195,7 +230,17 @@ def format_row(row, widths):
 
 
 def print_comparison_table(rows):
-    table = [["opponent", "depth", "AB W-L-D", "AB win%", "AB diff", "node speedup", "time speedup"]]
+    table = [
+        [
+            "opponent",
+            "depth",
+            "AB W-L-D",
+            "AB win%",
+            "AB diff",
+            "node speedup",
+            "time speedup",
+        ]
+    ]
 
     for opponent in OPPONENTS:
         for depth in MINIMAX_DEPTHS:
@@ -203,15 +248,17 @@ def print_comparison_table(rows):
             alphabeta = find_row(rows, "alphabeta", depth, opponent)
             node_speedup = divide(minimax["avg_nodes"], alphabeta["avg_nodes"])
             time_speedup = divide(minimax["avg_move_time"], alphabeta["avg_move_time"])
-            table.append([
-                opponent,
-                str(depth),
-                f"{alphabeta['wins']}-{alphabeta['losses']}-{alphabeta['draws']}",
-                f"{100 * alphabeta['win_rate']:.0f}%",
-                f"{alphabeta['avg_score_diff']:.2f}",
-                f"{node_speedup:.2f}x",
-                f"{time_speedup:.2f}x",
-            ])
+            table.append(
+                [
+                    opponent,
+                    str(depth),
+                    f"{alphabeta['wins']}-{alphabeta['losses']}-{alphabeta['draws']}",
+                    f"{100 * alphabeta['win_rate']:.0f}%",
+                    f"{alphabeta['avg_score_diff']:.2f}",
+                    f"{node_speedup:.2f}x",
+                    f"{time_speedup:.2f}x",
+                ]
+            )
 
     widths = [max(len(line[col]) for line in table) for col in range(len(table[0]))]
     separator = "-+-".join("-" * width for width in widths)
@@ -228,7 +275,11 @@ def divide(a, b):
 
 def find_row(rows, agent, depth, opponent):
     for row in rows:
-        if row["agent"] == agent and row["depth"] == depth and row["opponent"] == opponent:
+        if (
+            row["agent"] == agent
+            and row["depth"] == depth
+            and row["opponent"] == opponent
+        ):
             return row
     raise ValueError(f"Missing result: {agent} depth {depth} vs {opponent}")
 
@@ -241,7 +292,6 @@ def write_csv(rows):
 
 
 def main():
-    random.seed(SEED)
     rows = run_all()
     write_csv(rows)
     print_results(rows)
