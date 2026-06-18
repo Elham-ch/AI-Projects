@@ -2,7 +2,7 @@ from agents.search_utils import evaluate, ordered_moves
 
 
 class MinimaxAgent:
-    def __init__(self, depth=4, endgame_empty=5):
+    def __init__(self, depth=4, endgame_empty=6):
         self.depth = depth
         self.endgame_empty = endgame_empty
         self.nodes_searched = 0
