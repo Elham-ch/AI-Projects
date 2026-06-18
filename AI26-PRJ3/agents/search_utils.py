@@ -19,13 +19,14 @@ def evaluate(game, player):
             return -WIN_SCORE
         return 0
 
+    occupied = black_score + white_score
     disc_score = my_score - opponent_score
     mobility_score = get_mobility_score(game, player)
     corner_score = get_corner_score(game, player)
     corner_danger_score = get_corner_danger_score(game, player)
     edge_score = get_edge_score(game, player)
-    edge_danger_score = get_edge_danger_score(game, player)
-    disc_weight = get_disc_weight(game, black_score + white_score)
+    frontier_score = get_frontier_score(game, player)
+    disc_weight = get_disc_weight(game, occupied)
 
     return (
         disc_weight * disc_score
@@ -33,7 +34,7 @@ def evaluate(game, player):
         + 35 * corner_score
         + 2 * edge_score
         - 8 * corner_danger_score
-        - 2 * edge_danger_score
+        - frontier_score
     )
 
 
@@ -134,6 +135,41 @@ def get_edge_danger_score(game, player):
             score -= 1
 
     return score
+
+
+def get_frontier_score(game, player):
+    my_frontier = 0
+    opponent_frontier = 0
+
+    for row in range(game.size):
+        for col in range(game.size):
+            if game.board[row][col] == EMPTY:
+                continue
+            if not is_frontier_disc(game, row, col):
+                continue
+
+            if game.board[row][col] == player:
+                my_frontier += 1
+            elif game.board[row][col] == -player:
+                opponent_frontier += 1
+
+    return my_frontier - opponent_frontier
+
+
+def is_frontier_disc(game, row, col):
+    for row_step in [-1, 0, 1]:
+        for col_step in [-1, 0, 1]:
+            if row_step == 0 and col_step == 0:
+                continue
+
+            next_row = row + row_step
+            next_col = col + col_step
+            if not game.inside(next_row, next_col):
+                continue
+            if game.board[next_row][next_col] == EMPTY:
+                return True
+
+    return False
 
 
 def get_corners(game):
